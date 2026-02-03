@@ -24,6 +24,13 @@
 <script>
   const API_URL = "https://script.google.com/macros/s/AKfycby0OQ3hSe8-Gk2_mOm95Q6A40osnGATiC1TjvBi3V9inndgfBmHfG913U4vOrRfKZmu/exec";
 
+  const $ = (id) => document.getElementById(id);
+  const state = {
+    teamId: localStorage.getItem("fermi_teamId") || "",
+    teamName: localStorage.getItem("fermi_teamName") || "",
+    lastWithin: false
+  };
+
   async function api(action, payload = {}) {
     const res = await fetch(API_URL, {
       method: "POST",
