@@ -1,55 +1,113 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Leaderboard</title>
+  <title>Estimathon — Leaderboard</title>
   <style>
-    body { font-family: system-ui, sans-serif; margin: 24px; }
-    h1 { font-size: 42px; margin-bottom: 10px; }
-    table { width: 100%; border-collapse: collapse; font-size: 26px; }
-    th, td { padding: 10px; border-bottom: 1px solid #ddd; }
-    th { text-align: left; }
+    :root { --bg:#0b0f14; --card:#121925; --text:#e9eef5; --muted:#9fb0c3; --border:#223047; --accent:#4da3ff; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; background:var(--bg); color:var(--text); }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 22px 14px 40px; }
+    h1 { margin: 6px 0 12px; font-size: 48px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 16px; box-shadow: 0 10px 28px rgba(0,0,0,.28); }
+    table { width: 100%; border-collapse: collapse; font-size: 30px; }
+    th, td { padding: 12px 10px; border-bottom: 1px solid var(--border); }
+    th { text-align: left; color: var(--muted); font-weight: 700; }
+    .muted { color: var(--muted); font-size: 16px; margin-top: 10px; }
+    .pill { display:inline-block; padding: 6px 10px; border-radius: 999px; border:1px solid var(--border); color: var(--muted); font-size: 14px; }
+    .toprow { display:flex; justify-content: space-between; align-items:center; gap:12px; flex-wrap: wrap; }
   </style>
 </head>
+
 <body>
-  <h1>Leaderboard</h1>
-  <table>
-    <thead>
-      <tr><th>#</th><th>Team</th><th>Solved</th><th>Score</th></tr>
-    </thead>
-    <tbody id="rows"></tbody>
-  </table>
+  <div class="wrap">
+    <div class="toprow">
+      <h1>Leaderboard</h1>
+      <div class="pill" id="statusPill">Updating…</div>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:80px;">#</th>
+            <th>Team</th>
+            <th style="width:160px;">Solved</th>
+            <th style="width:200px;">Score</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div class="muted">Auto-refresh every 5 seconds.</div>
+    </div>
+  </div>
 
 <script>
+  // ✅ Replace this with your Apps Script Web App URL (keep /exec)
   const API_URL = "https://script.google.com/macros/s/AKfycby0OQ3hSe8-Gk2_mOm95Q6A40osnGATiC1TjvBi3V9inndgfBmHfG913U4vOrRfKZmu/exec";
 
-  const $ = (id) => document.getElementById(id);
-  const state = {
-    teamId: localStorage.getItem("fermi_teamId") || "",
-    teamName: localStorage.getItem("fermi_teamName") || "",
-    lastWithin: false
-  };
+  function jsonp(params) {
+    return new Promise((resolve, reject) => {
+      const cbName = "cb_" + Math.random().toString(36).slice(2);
+      params.callback = cbName;
+
+      const qs = new URLSearchParams(params).toString();
+      const src = `${API_URL}?${qs}`;
+
+      window[cbName] = (data) => {
+        cleanup();
+        resolve(data);
+      };
+
+      const script = document.createElement("script");
+      script.src = src;
+      script.onerror = () => {
+        cleanup();
+        reject(new Error("JSONP request failed"));
+      };
+
+      document.body.appendChild(script);
+
+      function cleanup() {
+        try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+        if (script.parentNode) script.parentNode.removeChild(script);
+      }
+    });
+  }
 
   async function api(action, payload = {}) {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ action, ...payload })
-    });
-    return res.json();
+    return jsonp({ action, ...payload });
+  }
+
+  function setStatus(text) {
+    document.getElementById("statusPill").textContent = text;
   }
 
   async function refresh() {
-    const data = await api("getLeaderboard");
-    if (!data.ok) return;
-    const tbody = document.getElementById("rows");
-    tbody.innerHTML = "";
-    data.leaderboard.forEach((t, i) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${i+1}</td><td>${t.teamName}</td><td>${t.solved}</td><td>${t.score}</td>`;
-      tbody.appendChild(tr);
-    });
+    try {
+      setStatus("Updating…");
+      const data = await api("getLeaderboard");
+      if (!data.ok) { setStatus("Error"); return; }
+
+      const tbody = document.getElementById("rows");
+      tbody.innerHTML = "";
+
+      (data.leaderboard || []).forEach((t, i) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${i + 1}</td>
+          <td>${t.teamName}</td>
+          <td>${t.solved}</td>
+          <td>${t.score}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      const now = new Date();
+      setStatus(`Last update: ${now.toLocaleTimeString()}`);
+    } catch (e) {
+      setStatus("Error");
+    }
   }
 
   refresh();
