@@ -1,0 +1,181 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Fermi Challenge</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 24px auto; padding: 0 12px; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; margin: 12px 0; }
+    button { padding: 10px 14px; border-radius: 10px; border: 1px solid #999; background: #fff; cursor: pointer; }
+    button.primary { background: #111; color: #fff; border-color: #111; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    input { padding: 10px; border-radius: 10px; border: 1px solid #bbb; width: 100%; font-size: 16px; }
+    .row { display:flex; gap:10px; flex-wrap: wrap; align-items:center; }
+    .row > * { flex: 1; }
+    .status { font-weight: 600; }
+  </style>
+</head>
+<body>
+  <h1>Fermi Challenge</h1>
+
+  <div class="card" id="loginCard">
+    <h2>Team Setup</h2>
+    <p>Enter a team name or leave blank for a random animal name.</p>
+    <input id="teamName" placeholder="Team name (optional)" />
+    <div class="row" style="margin-top:10px;">
+      <button class="primary" id="createBtn">Create / Join Team</button>
+      <button id="resetBtn">Reset Team</button>
+    </div>
+    <p id="loginMsg"></p>
+  </div>
+
+  <div class="card" id="gameCard" style="display:none;">
+    <div class="row">
+      <div>
+        <div class="status" id="teamLabel"></div>
+        <div id="progressLabel"></div>
+      </div>
+      <div style="text-align:right;">
+        <div><b>Score:</b> <span id="scoreLabel">0</span></div>
+        <div><b>Solved:</b> <span id="solvedLabel">0</span></div>
+      </div>
+    </div>
+
+    <hr/>
+
+    <h2 id="qTitle">Question</h2>
+    <div id="qText"></div>
+    <div style="margin-top:8px;"><b>Units:</b> <span id="units"></span></div>
+    <div style="margin-top:8px;"><b>Points remaining:</b> <span id="pointsRemaining"></span></div>
+    <div style="margin-top:8px;"><b>Attempts:</b> <span id="attempts"></span> &nbsp; <b>Hints:</b> <span id="hints"></span></div>
+
+    <div style="margin-top:12px;">
+      <input id="guessInput" placeholder="Enter your guess (number)" inputmode="decimal"/>
+    </div>
+
+    <div class="row" style="margin-top:10px;">
+      <button class="primary" id="guessBtn">Submit Guess</button>
+      <button id="hintBtn">Hint (Too High/Low)</button>
+      <button id="finalBtn" class="primary">Submit Final</button>
+      <button id="passBtn">PASS</button>
+    </div>
+
+    <p id="msg"></p>
+  </div>
+
+  <p><a href="leaderboard.html" target="_blank">Open Leaderboard View</a></p>
+
+<script>
+  // 1) Paste your Apps Script Web App URL here:
+  const API_URL = "PASTE_YOUR_WEB_APP_URL_HERE";
+
+  const $ = (id) => document.getElementById(id);
+  const state = {
+    teamId: localStorage.getItem("fermi_teamId") || "",
+    teamName: localStorage.getItem("fermi_teamName") || "",
+    lastWithin: false
+  };
+
+  async function api(action, payload = {}) {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ action, ...payload })
+    });
+    return res.json();
+  }
+
+  async function refresh() {
+    if (!state.teamId) return;
+    const data = await api("getState", { teamId: state.teamId });
+    if (!data.ok) { $("msg").textContent = data.error || "Error"; return; }
+
+    $("loginCard").style.display = "none";
+    $("gameCard").style.display = "block";
+
+    $("teamLabel").textContent = data.team.teamName;
+    $("progressLabel").textContent = `Round ${data.team.currentRound} — Q${data.team.currentQNumber}/10`;
+    $("scoreLabel").textContent = data.team.totalScore;
+    const solved = data.team.solvedRound1 + data.team.solvedRound2;
+    $("solvedLabel").textContent = solved;
+
+    $("qTitle").textContent = `Round ${data.question.round} — Question ${data.question.qNumber}`;
+    $("qText").textContent = data.question.questionText;
+    $("units").textContent = data.question.unitsLabel;
+
+    $("pointsRemaining").textContent = data.team.pointsRemainingOnCurrent;
+    $("attempts").textContent = data.team.attemptsOnCurrent;
+    $("hints").textContent = data.team.hintsOnCurrent;
+
+    state.lastWithin = !!data.team.lastWithinTolerance;
+
+    $("hintBtn").disabled = !data.team.canUseHint;
+    $("passBtn").disabled = !data.team.canPass;
+    $("finalBtn").disabled = !state.lastWithin;
+    $("guessBtn").disabled = !data.roundOpen;
+
+    if (!data.roundOpen) {
+      $("msg").textContent = "This round is currently closed.";
+    }
+  }
+
+  $("createBtn").onclick = async () => {
+    const teamName = $("teamName").value.trim();
+    $("loginMsg").textContent = "Creating team...";
+    const data = await api("createTeam", { teamName });
+    if (!data.ok) { $("loginMsg").textContent = data.error || "Error"; return; }
+    state.teamId = data.teamId;
+    state.teamName = data.teamName;
+    localStorage.setItem("fermi_teamId", state.teamId);
+    localStorage.setItem("fermi_teamName", state.teamName);
+    await refresh();
+  };
+
+  $("resetBtn").onclick = () => {
+    localStorage.removeItem("fermi_teamId");
+    localStorage.removeItem("fermi_teamName");
+    location.reload();
+  };
+
+  $("guessBtn").onclick = async () => {
+    const guessValue = $("guessInput").value.trim();
+    $("msg").textContent = "Submitting guess...";
+    const data = await api("submitGuess", { teamId: state.teamId, guessValue });
+    if (!data.ok) { $("msg").textContent = data.error || "Error"; return; }
+    $("msg").textContent = data.message;
+    $("guessInput").value = "";
+    await refresh();
+  };
+
+  $("hintBtn").onclick = async () => {
+    $("msg").textContent = "Getting hint...";
+    const data = await api("useHint", { teamId: state.teamId });
+    if (!data.ok) { $("msg").textContent = data.error || "Error"; return; }
+    $("msg").textContent = `Hint: ${data.hint.replace("_"," ")}`;
+    await refresh();
+  };
+
+  $("finalBtn").onclick = async () => {
+    $("msg").textContent = "Submitting final...";
+    const data = await api("submitFinal", { teamId: state.teamId });
+    if (!data.ok) { $("msg").textContent = data.error || "Error"; return; }
+    $("msg").textContent = `Final submitted! +${data.scoreAwarded} points.`;
+    await refresh();
+  };
+
+  $("passBtn").onclick = async () => {
+    $("msg").textContent = "Passing...";
+    const data = await api("passQuestion", { teamId: state.teamId });
+    if (!data.ok) { $("msg").textContent = data.error || "Error"; return; }
+    $("msg").textContent = "Passed.";
+    await refresh();
+  };
+
+  // Auto-resume if teamId exists
+  (async () => {
+    if (state.teamId) await refresh();
+  })();
+</script>
+</body>
+</html>
