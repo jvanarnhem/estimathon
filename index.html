@@ -125,7 +125,7 @@
     return new Promise((resolve, reject) => {
       const cbName = "cb_" + Math.random().toString(36).slice(2);
       params.callback = cbName;
-
+      params._ = Date.now();
       const qs = new URLSearchParams(params).toString();
       const src = `${API_URL}?${qs}`;
 
