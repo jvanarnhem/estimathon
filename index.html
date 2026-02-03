@@ -1,105 +1,184 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Fermi Challenge</title>
+  <title>Estimathon — Fermi Challenge</title>
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 24px auto; padding: 0 12px; }
-    .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; margin: 12px 0; }
-    button { padding: 10px 14px; border-radius: 10px; border: 1px solid #999; background: #fff; cursor: pointer; }
-    button.primary { background: #111; color: #fff; border-color: #111; }
-    button:disabled { opacity: .5; cursor: not-allowed; }
-    input { padding: 10px; border-radius: 10px; border: 1px solid #bbb; width: 100%; font-size: 16px; }
-    .row { display:flex; gap:10px; flex-wrap: wrap; align-items:center; }
-    .row > * { flex: 1; }
-    .status { font-weight: 600; }
+    :root { --bg:#0b0f14; --card:#121925; --text:#e9eef5; --muted:#9fb0c3; --border:#223047; --accent:#4da3ff; --good:#43d17c; --bad:#ff5b5b; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; background:var(--bg); color:var(--text); }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 22px 14px 40px; }
+    h1 { margin: 6px 0 14px; font-size: 34px; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin: 12px 0; box-shadow: 0 8px 22px rgba(0,0,0,.25); }
+    .row { display:flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .row > .grow { flex: 1; min-width: 220px; }
+    .pill { display:inline-block; padding: 6px 10px; border-radius: 999px; border:1px solid var(--border); color: var(--muted); font-size: 13px; }
+    .stat { font-size: 14px; color: var(--muted); }
+    .big { font-size: 22px; font-weight: 700; color: var(--text); }
+    hr { border:0; border-top: 1px solid var(--border); margin: 14px 0; }
+    input { width: 100%; padding: 12px 12px; border-radius: 12px; border: 1px solid var(--border); background: #0f1520; color: var(--text); font-size: 16px; outline: none; }
+    input:focus { border-color: var(--accent); }
+    button { padding: 11px 14px; border-radius: 12px; border: 1px solid var(--border); background: #0f1520; color: var(--text); cursor: pointer; font-weight: 600; }
+    button.primary { background: var(--accent); border-color: var(--accent); color: #03101f; }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    .msg { margin: 10px 0 0; color: var(--muted); }
+    .msg.good { color: var(--good); }
+    .msg.bad { color: var(--bad); }
+    .footer { margin-top: 18px; color: var(--muted); font-size: 14px; }
+    .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; background:#0f1520; border:1px solid var(--border); border-radius:8px; padding:2px 6px; }
   </style>
 </head>
+
 <body>
-  <h1>Fermi Challenge</h1>
+  <div class="wrap">
+    <h1>Estimathon — Fermi Challenge</h1>
 
-  <div class="card" id="loginCard">
-    <h2>Team Setup</h2>
-    <p>Enter a team name or leave blank for a random animal name.</p>
-    <input id="teamName" placeholder="Team name (optional)" />
-    <div class="row" style="margin-top:10px;">
-      <button class="primary" id="createBtn">Create / Join Team</button>
-      <button id="resetBtn">Reset Team</button>
-    </div>
-    <p id="loginMsg"></p>
-  </div>
-
-  <div class="card" id="gameCard" style="display:none;">
-    <div class="row">
-      <div>
-        <div class="status" id="teamLabel"></div>
-        <div id="progressLabel"></div>
+    <div class="card" id="loginCard">
+      <div class="row">
+        <div class="grow">
+          <div class="pill">Team Setup</div>
+          <h2 style="margin:10px 0 6px;">Create / Join Team</h2>
+          <div class="stat">Enter a team name, or leave blank to get a random animal name.</div>
+        </div>
+        <div class="pill">One device per team</div>
       </div>
-      <div style="text-align:right;">
-        <div><b>Score:</b> <span id="scoreLabel">0</span></div>
-        <div><b>Solved:</b> <span id="solvedLabel">0</span></div>
+
+      <div style="margin-top:12px;">
+        <input id="teamName" placeholder="Team name (optional)"/>
       </div>
+
+      <div class="row" style="margin-top:12px;">
+        <button class="primary" id="createBtn">Create / Join</button>
+        <button id="resetBtn">Reset Team</button>
+        <div class="grow"></div>
+      </div>
+
+      <div class="msg" id="loginMsg"></div>
     </div>
 
-    <hr/>
+    <div class="card" id="gameCard" style="display:none;">
+      <div class="row">
+        <div class="grow">
+          <div class="pill" id="teamPill">Team</div>
+          <div class="stat" id="progressLabel"></div>
+        </div>
+        <div>
+          <div class="stat">Score</div>
+          <div class="big" id="scoreLabel">0</div>
+        </div>
+        <div>
+          <div class="stat">Solved</div>
+          <div class="big" id="solvedLabel">0</div>
+        </div>
+      </div>
 
-    <h2 id="qTitle">Question</h2>
-    <div id="qText"></div>
-    <div style="margin-top:8px;"><b>Units:</b> <span id="units"></span></div>
-    <div style="margin-top:8px;"><b>Points remaining:</b> <span id="pointsRemaining"></span></div>
-    <div style="margin-top:8px;"><b>Attempts:</b> <span id="attempts"></span> &nbsp; <b>Hints:</b> <span id="hints"></span></div>
+      <hr/>
 
-    <div style="margin-top:12px;">
-      <input id="guessInput" placeholder="Enter your guess (number)" inputmode="decimal"/>
+      <h2 style="margin:0 0 8px;" id="qTitle">Question</h2>
+      <div class="stat" id="qText"></div>
+
+      <div class="row" style="margin-top:12px;">
+        <div class="pill"><b>Units:</b> <span id="units"></span></div>
+        <div class="pill"><b>Points remaining:</b> <span id="pointsRemaining"></span></div>
+        <div class="pill"><b>Attempts:</b> <span id="attempts"></span></div>
+        <div class="pill"><b>Hints:</b> <span id="hints"></span></div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <input id="guessInput" placeholder="Enter your guess (number)" inputmode="decimal"/>
+        <div class="stat" style="margin-top:6px;">
+          Tip: press <span class="kbd">Enter</span> to submit a guess.
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:12px;">
+        <button class="primary" id="guessBtn">Submit Guess</button>
+        <button id="hintBtn">Hint (Too High/Low)</button>
+        <button class="primary" id="finalBtn">Submit Final</button>
+        <button id="passBtn">PASS</button>
+      </div>
+
+      <div class="msg" id="msg"></div>
     </div>
 
-    <div class="row" style="margin-top:10px;">
-      <button class="primary" id="guessBtn">Submit Guess</button>
-      <button id="hintBtn">Hint (Too High/Low)</button>
-      <button id="finalBtn" class="primary">Submit Final</button>
-      <button id="passBtn">PASS</button>
+    <div class="footer">
+      Projector view: <a href="leaderboard.html" target="_blank">Leaderboard</a>
     </div>
-
-    <p id="msg"></p>
   </div>
-
-  <p><a href="leaderboard.html" target="_blank">Open Leaderboard View</a></p>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycby0OQ3hSe8-Gk2_mOm95Q6A40osnGATiC1TjvBi3V9inndgfBmHfG913U4vOrRfKZmu/exec";
+  // ✅ Replace this with your Apps Script Web App URL (keep /exec)
+  const API_URL = "https://script.google.com/macros/s/AKfycby0OQ3hSe8-Gk2_mOm95Q6A40osnGATiC1TjvBi3V9inndgfBmHfG913U4vOrRfKZmu/exec";
 
   const $ = (id) => document.getElementById(id);
+
   const state = {
-    teamId: localStorage.getItem("fermi_teamId") || "",
-    teamName: localStorage.getItem("fermi_teamName") || "",
-    lastWithin: false
+    teamId: localStorage.getItem("estimathon_teamId") || "",
+    teamName: localStorage.getItem("estimathon_teamName") || "",
+    lastWithin: false,
   };
 
-  async function api(action, payload = {}) {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ action, ...payload })
+  // --- JSONP helper (NO CORS, NO fetch, NO POST) ---
+  function jsonp(params) {
+    return new Promise((resolve, reject) => {
+      const cbName = "cb_" + Math.random().toString(36).slice(2);
+      params.callback = cbName;
+
+      const qs = new URLSearchParams(params).toString();
+      const src = `${API_URL}?${qs}`;
+
+      window[cbName] = (data) => {
+        cleanup();
+        resolve(data);
+      };
+
+      const script = document.createElement("script");
+      script.src = src;
+      script.onerror = () => {
+        cleanup();
+        reject(new Error("JSONP request failed"));
+      };
+
+      document.body.appendChild(script);
+
+      function cleanup() {
+        try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+        if (script.parentNode) script.parentNode.removeChild(script);
+      }
     });
-    return res.json();
+  }
+
+  async function api(action, payload = {}) {
+    return jsonp({ action, ...payload });
+  }
+
+  function setMsg(el, text, cls) {
+    el.className = "msg" + (cls ? " " + cls : "");
+    el.textContent = text || "";
   }
 
   async function refresh() {
     if (!state.teamId) return;
+
     const data = await api("getState", { teamId: state.teamId });
-    if (!data.ok) { $("msg").textContent = data.error || "Error"; return; }
+    if (!data.ok) {
+      setMsg($("msg"), data.error || "Error loading state", "bad");
+      return;
+    }
 
     $("loginCard").style.display = "none";
     $("gameCard").style.display = "block";
 
-    $("teamLabel").textContent = data.team.teamName;
+    $("teamPill").textContent = data.team.teamName;
     $("progressLabel").textContent = `Round ${data.team.currentRound} — Q${data.team.currentQNumber}/10`;
+
     $("scoreLabel").textContent = data.team.totalScore;
-    const solved = data.team.solvedRound1 + data.team.solvedRound2;
+    const solved = (data.team.solvedRound1 || 0) + (data.team.solvedRound2 || 0);
     $("solvedLabel").textContent = solved;
 
-    $("qTitle").textContent = `Round ${data.question.round} — Question ${data.question.qNumber}`;
+    $("qTitle").textContent = `Question ${data.question.qNumber} (Round ${data.question.round})`;
     $("qText").textContent = data.question.questionText;
     $("units").textContent = data.question.unitsLabel;
 
@@ -115,63 +194,85 @@ const API_URL = "https://script.google.com/macros/s/AKfycby0OQ3hSe8-Gk2_mOm95Q6A
     $("guessBtn").disabled = !data.roundOpen;
 
     if (!data.roundOpen) {
-      $("msg").textContent = "This round is currently closed.";
+      setMsg($("msg"), "This round is currently closed.", "bad");
+    } else {
+      setMsg($("msg"), "", "");
     }
   }
 
+  // --- UI Actions ---
   $("createBtn").onclick = async () => {
+    setMsg($("loginMsg"), "Creating team...", "");
     const teamName = $("teamName").value.trim();
-    $("loginMsg").textContent = "Creating team...";
     const data = await api("createTeam", { teamName });
-    if (!data.ok) { $("loginMsg").textContent = data.error || "Error"; return; }
+    if (!data.ok) {
+      setMsg($("loginMsg"), data.error || "Error creating team", "bad");
+      return;
+    }
     state.teamId = data.teamId;
     state.teamName = data.teamName;
-    localStorage.setItem("fermi_teamId", state.teamId);
-    localStorage.setItem("fermi_teamName", state.teamName);
+    localStorage.setItem("estimathon_teamId", state.teamId);
+    localStorage.setItem("estimathon_teamName", state.teamName);
+    setMsg($("loginMsg"), "Team ready!", "good");
     await refresh();
   };
 
   $("resetBtn").onclick = () => {
-    localStorage.removeItem("fermi_teamId");
-    localStorage.removeItem("fermi_teamName");
+    localStorage.removeItem("estimathon_teamId");
+    localStorage.removeItem("estimathon_teamName");
     location.reload();
   };
 
   $("guessBtn").onclick = async () => {
     const guessValue = $("guessInput").value.trim();
-    $("msg").textContent = "Submitting guess...";
+    if (!guessValue) return setMsg($("msg"), "Enter a number first.", "bad");
+
+    setMsg($("msg"), "Submitting guess...", "");
     const data = await api("submitGuess", { teamId: state.teamId, guessValue });
-    if (!data.ok) { $("msg").textContent = data.error || "Error"; return; }
-    $("msg").textContent = data.message;
+    if (!data.ok) return setMsg($("msg"), data.error || "Error", "bad");
+
+    if (data.withinTolerance) {
+      setMsg($("msg"), "✅ Within tolerance! You may submit final (or keep trying).", "good");
+    } else {
+      setMsg($("msg"), "Not within tolerance yet.", "bad");
+    }
+
     $("guessInput").value = "";
     await refresh();
   };
 
   $("hintBtn").onclick = async () => {
-    $("msg").textContent = "Getting hint...";
+    setMsg($("msg"), "Getting hint...", "");
     const data = await api("useHint", { teamId: state.teamId });
-    if (!data.ok) { $("msg").textContent = data.error || "Error"; return; }
-    $("msg").textContent = `Hint: ${data.hint.replace("_"," ")}`;
+    if (!data.ok) return setMsg($("msg"), data.error || "Error", "bad");
+
+    const nice = String(data.hint || "").replaceAll("_", " ");
+    setMsg($("msg"), `Hint: ${nice}`, "good");
     await refresh();
   };
 
   $("finalBtn").onclick = async () => {
-    $("msg").textContent = "Submitting final...";
+    setMsg($("msg"), "Submitting final...", "");
     const data = await api("submitFinal", { teamId: state.teamId });
-    if (!data.ok) { $("msg").textContent = data.error || "Error"; return; }
-    $("msg").textContent = `Final submitted! +${data.scoreAwarded} points.`;
+    if (!data.ok) return setMsg($("msg"), data.error || "Error", "bad");
+
+    setMsg($("msg"), `✅ Final submitted! +${data.scoreAwarded} points.`, "good");
     await refresh();
   };
 
   $("passBtn").onclick = async () => {
-    $("msg").textContent = "Passing...";
+    setMsg($("msg"), "Passing...", "");
     const data = await api("passQuestion", { teamId: state.teamId });
-    if (!data.ok) { $("msg").textContent = data.error || "Error"; return; }
-    $("msg").textContent = "Passed.";
+    if (!data.ok) return setMsg($("msg"), data.error || "Error", "bad");
+    setMsg($("msg"), "Passed. Moving on…", "good");
     await refresh();
   };
 
-  // Auto-resume if teamId exists
+  $("guessInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") $("guessBtn").click();
+  });
+
+  // Auto-resume
   (async () => {
     if (state.teamId) await refresh();
   })();
