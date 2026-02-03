@@ -1,0 +1,52 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Leaderboard</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 24px; }
+    h1 { font-size: 42px; margin-bottom: 10px; }
+    table { width: 100%; border-collapse: collapse; font-size: 26px; }
+    th, td { padding: 10px; border-bottom: 1px solid #ddd; }
+    th { text-align: left; }
+  </style>
+</head>
+<body>
+  <h1>Leaderboard</h1>
+  <table>
+    <thead>
+      <tr><th>#</th><th>Team</th><th>Solved</th><th>Score</th></tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+
+<script>
+  const API_URL = "PASTE_YOUR_WEB_APP_URL_HERE";
+
+  async function api(action, payload = {}) {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ action, ...payload })
+    });
+    return res.json();
+  }
+
+  async function refresh() {
+    const data = await api("getLeaderboard");
+    if (!data.ok) return;
+    const tbody = document.getElementById("rows");
+    tbody.innerHTML = "";
+    data.leaderboard.forEach((t, i) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${i+1}</td><td>${t.teamName}</td><td>${t.solved}</td><td>${t.score}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  refresh();
+  setInterval(refresh, 5000);
+</script>
+</body>
+</html>
